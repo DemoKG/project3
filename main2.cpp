@@ -2,13 +2,10 @@
 #include <string>
 #include <vector>
 #include <memory>
-#include <algorithm>
 #include <cctype>
 #include <windows.h>
-
 using namespace std;
 
-// Базовый класс для всех шифров
 class Cipher {
 public:
     virtual string encrypt(const string& text) = 0;
@@ -105,13 +102,9 @@ public:
         }
         return result;
     }
-
-    string getAlphabet() const { return cipherAlphabet; }
 };
 
-// Шифр Виженера
 class VigenereCipher : public Cipher {
-    // храним ключ в верхнем регистре, только латинские буквы
     string keyUpper;
 public:
     VigenereCipher(const string& key) {
@@ -121,7 +114,7 @@ public:
     string encrypt(const string& text) override {
         string result;
         int keyLen = static_cast<int>(keyUpper.size());
-        int ki = 0; // индекс по ключу — увеличиваем только при обработке букв
+        int ki = 0;
         for (char c : text) {
             if (isalpha(static_cast<unsigned char>(c))) {
                 bool upper = isupper(static_cast<unsigned char>(c));
@@ -148,7 +141,7 @@ public:
                 char up = static_cast<char>(toupper(static_cast<unsigned char>(c)));
                 int t = up - 'A';
                 int k = keyUpper[ki % keyLen] - 'A';
-                char mapped = static_cast<char>('A' + ( (t - k + 26) % 26 ));
+                char mapped = static_cast<char>('A' + ((t - k + 26) % 26));
                 result += (upper ? mapped : static_cast<char>(tolower(mapped)));
                 ++ki;
             } else {
@@ -157,152 +150,56 @@ public:
         }
         return result;
     }
-
-    string getKeyUpper() const { return keyUpper; }
 };
-
-// Помощник для безопасного чтения целого числа из строки
-static bool read_int(const string& prompt, int& out) {
-    string line;
-    cout << prompt;
-    if (!getline(cin, line)) return false;
-    try {
-        size_t pos;
-        int val = stoi(line, &pos);
-        if (pos != line.size()) return false;
-        out = val;
-        return true;
-    } catch (...) {
-        return false;
-    }
-}
-
-// Строгая проверка ключевого слова: только латинские буквы, непустой
-static bool read_keyword_strict(const string& prompt, string& outKey) {
-    cout << prompt;
-    string line;
-    if (!getline(cin, line)) return false;
-    if (line.empty()) return false;
-    for (char c : line) {
-        if (!isalpha(static_cast<unsigned char>(c))) return false;
-        char up = static_cast<char>(toupper(static_cast<unsigned char>(c)));
-        if (up < 'A' || up > 'Z') return false;
-    }
-    outKey = line;
-    return true;
-}
-
 int main() {
     SetConsoleOutputCP(CP_UTF8);
     SetConsoleCP(CP_UTF8);
-    vector<string> algorithms = { "Шифр Цезаря", "Одноалфавитный шифр", "Шифр Виженера" };
+
+    const vector<string> names = { "Шифр Цезаря", "Одноалфавитный шифр", "Шифр Виженера" };
 
     while (true) {
-        cout << "Меню\n";
-        cout << "1) Шифровать\n";
-        cout << "2) Расшифровать\n";
+        cout << "\nДоступные шифры:\n";
+        for (size_t i = 0; i < names.size(); ++i) cout << (i + 1) << ") " << names[i] << '\n';
         cout << "0) Выход\n";
 
-        int mode;
-        if (!read_int("Выберите режим: ", mode)) {
-            cout << "Неверный ввод. Введите число.\n";
-            continue;
-        }
-        if (mode == 0) break;
-        if (mode != 1 && mode != 2) {
-            cout << "Неверный режим. Попробуйте снова.\n";
-            continue;
-        }
-
-        cout << "\nДоступные шифры:\n";
-        for (size_t i = 0; i < algorithms.size(); ++i) {
-            cout << (i + 1) << ") " << algorithms[i] << "\n";
-        }
-
         int choice;
-        if (!read_int("Выберите шифр (номер): ", choice)) {
-            cout << "Неверный ввод. Введите число.\n";
-            continue;
-        }
-        if (choice < 1 || static_cast<size_t>(choice) > algorithms.size()) {
-            cout << "Неверный номер шифра.\n";
-            continue;
-        }
+        cin >> choice;
+        if (choice == 0) break;
 
         unique_ptr<Cipher> cipher;
-        string alphabetForShow;
-        string vigenereKeyShow;
 
-        if (algorithms[choice - 1] == "Шифр Цезаря") {
+        if (choice == 1) {
             int key;
-            while (true) {
-                if (!read_int("Введите ключ (целое неотрицательное число): ", key)) {
-                    cout << "Неверный ввод ключа. Попробуйте снова.\n";
-                    continue;
-                }
-                if (key < 0) {
-                    cout << "Ключ должен быть неотрицательным. Попробуйте снова.\n";
-                    continue;
-                }
-                break;
-            }
+
+            cin >> key;
             cipher = make_unique<CaesarCipher>(key);
-
-        } else if (algorithms[choice - 1] == "Одноалфавитный шифр") {
+        } else if (choice == 2) {
             string key;
-            while (true) {
-                if (!read_keyword_strict("Введите ключевое слово (только латинские буквы, без пробелов и знаков): ", key)) {
-                    cout << "Ключевое слово должно содержать только латинские буквы и быть непустым. Попробуйте снова.\n";
-                    continue;
-                }
-                break;
-            }
-            auto kc = make_unique<MonoCipher>(key);
-            alphabetForShow = kc->getAlphabet();
-            cipher = move(kc);
 
-        } else if (algorithms[choice - 1] == "Шифр Виженера") {
+            cin >> key;
+            cipher = make_unique<MonoCipher>(key);
+        } else if (choice == 3) {
             string key;
-            while (true) {
-                if (!read_keyword_strict("Введите ключ для Виженера (только латинские буквы, без пробелов): ", key)) {
-                    cout << "Ключ должен содержать только латинские латинские буквы и быть непустым. Попробуйте снова.\n";
-                    continue;
-                }
-                break;
-            }
-            auto vc = make_unique<VigenereCipher>(key);
-            vigenereKeyShow = vc->getKeyUpper();
-            cipher = move(vc);
+
+            cin >> key;
+            cipher = make_unique<VigenereCipher>(key);
         } else {
-            cout << "Выбран неизвестный шифр.\n";
             continue;
         }
 
-        string text;
-        cout << "Введите текст: ";
-        if (!getline(cin, text)) {
-            cout << "Ошибка ввода.\n";
-            break;
-        }
+        while (true) {
+            cout << "\n1) Шифровать\n2) Расшифровать\n3) Другой шифр\n0) Выход\n";
+            int act;
+            cin >> act;
+            if (act == 0) return 0;
+            if (act == 3) break;
 
-        if (!alphabetForShow.empty()) {
-            cout << "Алфавит шифра (Keyword): " << alphabetForShow << endl;
+            cout << "Текст: ";
+            string text;
+            getline(cin >> ws, text); //здесь ws: удаляет ведущие пробелы/переводы строки
+            string out = (act == 1) ? cipher->encrypt(text) : cipher->decrypt(text);
+            cout << "Результат: " << out << endl;
         }
-        if (!vigenereKeyShow.empty()) {
-            cout << "Ключ Виженера (верхний регистр): " << vigenereKeyShow << endl;
-        }
-
-        string result;
-        try {
-            if (mode == 1) result = cipher->encrypt(text);
-            else result = cipher->decrypt(text);
-        } catch (const exception& e) {
-            cout << "Ошибка при обработке: " << e.what() << "\n";
-            continue;
-        }
-
-        cout << "Результат: " << result << endl;
     }
-
     return 0;
 }
