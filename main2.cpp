@@ -159,7 +159,7 @@ int main() {
 
     while (true) {
         cout << "\nДоступные шифры:\n";
-        for (size_t i = 0; i < names.size(); ++i) cout << (i + 1) << ") " << names[i] << '\n';
+        for (int i = 0; i < names.size(); ++i) cout << (i + 1) << ") " << names[i] << '\n';
         cout << "0) Выход\n";
 
         int choice;
@@ -170,17 +170,17 @@ int main() {
 
         if (choice == 1) {
             int key;
-
+            cout << "Ключ (Целое неотрицательное число): ";
             cin >> key;
             cipher = make_unique<CaesarCipher>(key);
         } else if (choice == 2) {
             string key;
-
+            cout << "Ключ (Слово латинскими буквами): ";
             cin >> key;
             cipher = make_unique<MonoCipher>(key);
         } else if (choice == 3) {
             string key;
-
+            cout << "Ключ (Слово латинскими буквами): ";
             cin >> key;
             cipher = make_unique<VigenereCipher>(key);
         } else {
@@ -196,7 +196,7 @@ int main() {
 
             cout << "Текст: ";
             string text;
-            getline(cin >> ws, text); //здесь ws: удаляет ведущие пробелы/переводы строки
+            getline(cin >> ws, text);
             string out = (act == 1) ? cipher->encrypt(text) : cipher->decrypt(text);
             cout << "Результат: " << out << endl;
         }
